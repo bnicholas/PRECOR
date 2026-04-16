@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import time
 from contextlib import suppress
 from datetime import datetime, timezone
 from typing import AsyncIterator
@@ -49,10 +50,12 @@ class Machine:
         *,
         poll_interval: float,
         command_timeout: float,
+        keepalive_interval: float = 0.0,
     ) -> None:
         self.cfg = cfg
         self._poll_interval = poll_interval
         self._command_timeout = command_timeout
+        self._keepalive_interval = keepalive_interval
 
         self._reader: asyncio.StreamReader | None = None
         self._writer: asyncio.StreamWriter | None = None
@@ -60,9 +63,11 @@ class Machine:
 
         self._io_lock = asyncio.Lock()
         self._poll_task: asyncio.Task[None] | None = None
+        self._keepalive_task: asyncio.Task[None] | None = None
         self._subscribers: set[asyncio.Queue[Telemetry]] = set()
 
         self._last: Telemetry | None = None
+        self._last_tx_mono: float = 0.0
         self._connected = False
 
     # -- Connection lifecycle -------------------------------------------------
@@ -78,16 +83,23 @@ class Machine:
             self._connected = False
             log.warning("failed to open %s on %s: %s", self.cfg.id, self.cfg.port, e)
             return
+        self._last_tx_mono = time.monotonic()
         self._poll_task = asyncio.create_task(
             self._poll_loop(), name=f"poll-{self.cfg.id}"
         )
+        if self._keepalive_interval > 0:
+            self._keepalive_task = asyncio.create_task(
+                self._keepalive_loop(), name=f"keepalive-{self.cfg.id}"
+            )
 
     async def close(self) -> None:
-        if self._poll_task:
-            self._poll_task.cancel()
-            with suppress(asyncio.CancelledError):
-                await self._poll_task
-            self._poll_task = None
+        for task in (self._keepalive_task, self._poll_task):
+            if task:
+                task.cancel()
+                with suppress(asyncio.CancelledError):
+                    await task
+        self._poll_task = None
+        self._keepalive_task = None
         if self._writer:
             self._writer.close()
             with suppress(Exception):
@@ -117,6 +129,13 @@ class Machine:
 
     # -- Request/response -----------------------------------------------------
 
+    async def _write_frame(self, frame: bytes) -> None:
+        """Write a pre-built CSAFE frame. Caller must hold ``_io_lock``."""
+        assert self._writer is not None
+        self._writer.write(frame)
+        await self._writer.drain()
+        self._last_tx_mono = time.monotonic()
+
     async def exchange(self, commands: list[tuple[int, bytes]]) -> MachineSnapshot:
         """Send a command list and return the parsed response snapshot."""
         if not self._connected or not self._writer or not self._reader:
@@ -126,8 +145,7 @@ class Machine:
         frame = build_frame(payload)
 
         async with self._io_lock:
-            self._writer.write(frame)
-            await self._writer.drain()
+            await self._write_frame(frame)
             try:
                 response = await asyncio.wait_for(
                     self._read_one_frame(), timeout=self._command_timeout
@@ -153,12 +171,12 @@ class Machine:
 
     async def _poll_loop(self) -> None:
         payload = build_get_telemetry()
+        frame = build_frame(payload)
         while True:
             try:
                 async with self._io_lock:
                     assert self._writer is not None and self._reader is not None
-                    self._writer.write(build_frame(payload))
-                    await self._writer.drain()
+                    await self._write_frame(frame)
                     raw = await asyncio.wait_for(
                         self._read_one_frame(), timeout=self._command_timeout
                     )
@@ -171,6 +189,28 @@ class Machine:
             except Exception as e:
                 log.debug("poll error on %s: %s", self.cfg.id, e)
             await asyncio.sleep(self._poll_interval)
+
+    async def _keepalive_loop(self) -> None:
+        """Send a GETSTATUS if the link has been silent for too long.
+
+        Useful for headless (no-P80) operation in case the lower I/O board
+        firmware goes quiet without a peer. The poll loop normally keeps the
+        bus warm on its own; this task only fires when nothing else has
+        talked for ``keepalive_interval`` seconds.
+        """
+        # Check a few times per interval so we react quickly after an idle.
+        tick = max(0.5, self._keepalive_interval / 3)
+        while True:
+            await asyncio.sleep(tick)
+            idle = time.monotonic() - self._last_tx_mono
+            if idle < self._keepalive_interval:
+                continue
+            try:
+                await self.exchange([(Cmd.GETSTATUS, b"")])
+            except asyncio.CancelledError:
+                raise
+            except Exception as e:
+                log.debug("keepalive error on %s: %s", self.cfg.id, e)
 
     def _snapshot_to_telemetry(self, snap: MachineSnapshot) -> Telemetry:
         return Telemetry(

@@ -50,6 +50,13 @@ class Settings(BaseSettings):
     # Command response timeout on the serial link (seconds).
     command_timeout: float = 1.5
 
+    # Heartbeat to keep the lower board happy when nothing else is talking.
+    # If the bus has been silent for this long, the server sends a
+    # zero-side-effect GETSTATUS. 0 disables the heartbeat entirely.
+    # Useful when running headless (no P80) in case the lower board's
+    # firmware expects a periodic console peer.
+    keepalive_interval: float = 0.0
+
     # SQLite DB location for workout session persistence.
     db_path: str = "csafe.sqlite"
 

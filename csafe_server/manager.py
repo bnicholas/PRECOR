@@ -22,9 +22,15 @@ class MachineManager:
         *,
         poll_interval: float,
         command_timeout: float,
+        keepalive_interval: float = 0.0,
     ) -> None:
         self._machines: dict[str, Machine] = {
-            c.id: Machine(c, poll_interval=poll_interval, command_timeout=command_timeout)
+            c.id: Machine(
+                c,
+                poll_interval=poll_interval,
+                command_timeout=command_timeout,
+                keepalive_interval=keepalive_interval,
+            )
             for c in configs
         }
         self._db = db

@@ -25,6 +25,7 @@ def create_app() -> FastAPI:
             db,
             poll_interval=settings.telemetry_interval,
             command_timeout=settings.command_timeout,
+            keepalive_interval=settings.keepalive_interval,
         )
         await manager.start()
         app.state.db = db

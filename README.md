@@ -109,6 +109,8 @@ CSAFE_HOST=0.0.0.0
 CSAFE_PORT=8080
 CSAFE_TELEMETRY_INTERVAL=1.0
 CSAFE_COMMAND_TIMEOUT=1.5
+# Heartbeat when running headless (no P80). 0 disables.
+CSAFE_KEEPALIVE_INTERVAL=0.0
 CSAFE_DB_PATH=/var/lib/csafe/csafe.sqlite
 
 # JSON-encoded list; use `/dev/serial/by-id/...` for stability.

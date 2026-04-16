@@ -348,3 +348,4 @@ directly; no cloud, no account, no latency beyond the LAN hop.
 | Telemetry fields all null | console replied with different opcodes than requested | enable debug logging on `poll_loop` and inspect raw payload |
 | Resistance command ignored | vendor-specific opcode mismatch | verify with the Precor CSAFE reference for your P80 firmware, adjust `set_resistance` in `csafe_server/machine.py` |
 | Adapters swap `/dev/ttyUSBx` on reboot | USB enumeration race | already solved — use `/dev/serial/by-id/...` paths in `CSAFE_MACHINES` |
+| Lower board faults a few seconds after you unplug the P80 | some firmwares expect a periodic console peer | set `CSAFE_KEEPALIVE_INTERVAL=3.0` in `.env` and restart the server; the gateway will send a GETSTATUS whenever the bus has been idle that long |
