@@ -20,9 +20,12 @@ Target hardware: Raspberry Pi 3B+ (Raspberry Pi OS, 64-bit).
 
 ## 1. Hardware BOM
 
-You need to wire each P80's CSAFE port to a serial port on the Pi. CSAFE on the
-P80 is standard RS-232 (not TTL, not USB), presented on an **RJ45 jack** labeled
-"CSAFE" on the back of the console.
+You need to wire each machine's CSAFE port to a serial port on the Pi. CSAFE is
+standard RS-232 (not TTL, not USB), presented on an **RJ45 jack** labeled
+"CSAFE" on the machine's **lower I/O board** — not on the P80 console itself.
+The P80 is just the display head; the CSAFE link is exposed by a separate PCA
+in the machine's base, reachable through a service panel on the frame (under
+the rear cowl on the RBK, behind the lower service cover on the AMT).
 
 | Qty | Item | Notes |
 |----:|------|-------|
@@ -37,7 +40,7 @@ shifter** (MAX3232 breakout). Do **not** wire RS-232 directly to the Pi GPIO —
 you'll destroy the SoC. The default config assumes two USB adapters, which is
 simpler and safer.
 
-### CSAFE RJ45 pinout (P80 side)
+### CSAFE RJ45 pinout (machine side — lower I/O board)
 
 | RJ45 pin | Signal    | DB9 pin (DCE) |
 |---------:|-----------|---------------|
@@ -52,11 +55,15 @@ simpler and safer.
 
 Framing: **9600 8N1**, no flow control. A straight (non-null-modem) RJ45→DB9
 cable paired with a standard USB↔RS-232 adapter is what you want; the
-console is a DTE talking to the Pi as DCE.
+machine is a DTE talking to the Pi as DCE.
 
-> ⚠️ Pin 7 carries 5 V from the console. **Do not** bring it into a 3.3 V UART
-> or into an adapter that isn't expecting it. A commercial CSAFE cable omits
-> or isolates pin 7.
+> ⚠️ Pin 7 carries 5 V from the machine's lower board. **Do not** bring it
+> into a 3.3 V UART or into an adapter that isn't expecting it. A commercial
+> CSAFE cable omits or isolates pin 7.
+
+> On the RBK specifically, the lower I/O board is generator-powered — the
+> CSAFE link won't come alive until you've pedaled for a few seconds and the
+> console has booted.
 
 ---
 
