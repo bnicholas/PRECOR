@@ -122,8 +122,8 @@ Plug **one** USB↔RS-232 adapter into the Pi.
    Don't leave the cable pinched against a metal edge.
 4. If you're not sure a cable is wired correctly, use a multimeter to check
    continuity between the RJ45 pins and the DB9 pins per the README pinout.
-   Key check: **pin 2 of RJ45 → pin 5 of DB9 (GND)** and pin **3 of RJ45 →
-   pin 2 of DB9 (RXD at the Pi side)**.
+   Key check: **pin 7 of RJ45 → pin 5 of DB9 (GND)** and that **pin 3 of
+   RJ45 (voltage source, 4.75–10 V) goes NOWHERE** on the DB9 side.
 
 ---
 

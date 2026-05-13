@@ -42,24 +42,28 @@ simpler and safer.
 
 ### CSAFE RJ45 pinout (machine side — lower I/O board)
 
-| RJ45 pin | Signal    | DB9 pin (DCE) |
-|---------:|-----------|---------------|
-| 1        | (reserved)| —             |
-| 2        | GND       | 5             |
-| 3        | TXD (out of console) | 2 (RXD at the PC) |
-| 4        | RXD (into console)   | 3 (TXD at the PC) |
-| 5        | GND       | 5             |
-| 6        | (reserved)| —             |
-| 7        | +5 V (do not connect to the adapter) | — |
-| 8        | (reserved)| —             |
+> **Source:** pins 1–3, 6–8 are quoted from the CSAFE specification via
+> [Wikipedia][csafe-wiki]. Pins 4–5 are **inferred** as the RS-232 data pair
+> but pin order (which is TXD, which is RXD) is not confirmed from a public
+> source. **Verify against your Precor service manual before wiring.**
 
-Framing: **9600 8N1**, no flow control. A straight (non-null-modem) RJ45→DB9
-cable paired with a standard USB↔RS-232 adapter is what you want; the
-machine is a DTE talking to the Pi as DCE.
+| RJ45 pin | Signal (per CSAFE spec) | DB9 pin | Cat5e T-568B color |
+|---------:|------------------------|---------|-------------------|
+| 1        | Audio Left Input       | —       | White/Orange      |
+| 2        | Audio Right Input      | —       | Orange            |
+| 3        | Voltage Source Output (4.75–10 V) | — | White/Green |
+| 4        | Serial data [INFERRED: TXD out] | 2 (RXD) | Blue       |
+| 5        | Serial data [INFERRED: RXD in]  | 3 (TXD) | White/Blue |
+| 6        | CTS Flow Control Input | 7 (RTS) optional | Green     |
+| 7        | Signal Ground          | 5 (GND) | White/Brown       |
+| 8        | Shield                 | shell   | Brown             |
 
-> ⚠️ Pin 7 carries 5 V from the machine's lower board. **Do not** bring it
-> into a 3.3 V UART or into an adapter that isn't expecting it. A commercial
-> CSAFE cable omits or isolates pin 7.
+Framing: **9600 8N1**, no flow control required (CTS on pin 6 is optional).
+
+> ⚠️ **Pin 3 carries 4.75–10 V from the machine.** This is a power supply
+> output from the equipment intended to power a CSAFE master device. **Do
+> not** connect it to an RS-232 adapter data pin or a 3.3 V UART. Leave it
+> unconnected or insulate it.
 
 > On the RBK specifically, the lower I/O board is generator-powered — the
 > CSAFE link won't come alive until you've pedaled for a few seconds and the
