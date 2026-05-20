@@ -36,6 +36,21 @@
 #define WS_PORT 81
 #endif
 
+// --- ESP-NOW telemetry broadcast --------------------------------------------
+// Connectionless, low-latency peer-to-peer over the Wi-Fi radio. The probe
+// broadcasts a compact binary telemetry struct that a game host (another
+// ESP32, see examples/espnow_receiver) can consume with no AP/pairing.
+// Disabled by default so the probe doesn't poll the machine unless asked.
+//
+// Coexistence note: while connected as Wi-Fi STA, ESP-NOW uses the AP's
+// channel. The receiver must be on that same channel (GET / reports it).
+#ifndef ESPNOW_ENABLED
+#define ESPNOW_ENABLED false
+#endif
+#ifndef ESPNOW_INTERVAL_MS
+#define ESPNOW_INTERVAL_MS 250  // broadcast cadence when enabled (min 20)
+#endif
+
 // --- CSAFE serial link ------------------------------------------------------
 // ESP32 UART2. These are 3.3 V TTL pins: they MUST pass through a MAX3232 (or
 // equivalent) RS-232 level shifter before reaching the CSAFE RJ45. See

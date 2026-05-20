@@ -32,10 +32,32 @@ wire-compatible — what you learn on the ESP transfers straight to the Pi.
 - Decodes the standard telemetry poll (speed, cadence, power, HR, distance,
   calories, elapsed, state).
 - Streams **every byte** on the wire over WebSocket for live analysis.
+- Broadcasts telemetry over **ESP-NOW** (low-latency, no-AP) for a game host —
+  see below.
 - Updates **over the air** so firmware can be iterated wirelessly.
 
 Full endpoint reference: [`docs/api.md`](docs/api.md). Wiring and safety:
-[`docs/wiring.md`](docs/wiring.md).
+[`docs/wiring.md`](docs/wiring.md). Transport options (Wi-Fi vs ESP-NOW vs
+BLE FTMS): [`docs/transports.md`](docs/transports.md).
+
+## ESP-NOW telemetry (low-latency game link)
+
+The Wi-Fi HTTP/WS API is the dev/debug surface. For the actual game link the
+probe can also broadcast telemetry over **ESP-NOW** — connectionless,
+peer-to-peer, ~1–2 ms, no router or pairing. It's **off by default**; enable it:
+
+```bash
+curl -s -XPOST http://precor-csafe-esp.local/espnow \
+     -H 'content-type: application/json' -d '{"enabled":true,"interval_ms":250}'
+```
+
+When on, the probe polls the machine and broadcasts a compact 24-byte
+[`TelemetryPacket`](include/telemetry_packet.h). Flash
+[`examples/espnow_receiver`](examples/espnow_receiver) onto a second ESP32 to
+receive it and bridge each packet to USB serial as JSON for a host/game to read.
+
+> Channel gotcha: while connected as Wi-Fi STA the probe uses its AP's channel,
+> and ESP-NOW peers must share it. The receiver README explains how to match.
 
 ## Hardware
 
@@ -109,15 +131,19 @@ Either way the device is a first-class, remotely-flashable tool in the loop.
 ESP/
 ├── platformio.ini          board, libs, usb + ota upload envs
 ├── include/
-│   ├── config.h            pins, baud, OTA + Wi-Fi defaults
+│   ├── config.h            pins, baud, OTA + Wi-Fi + ESP-NOW defaults
+│   ├── telemetry_packet.h  ESP-NOW wire format (shared with the receiver)
 │   └── secrets.example.h   copy to secrets.h (gitignored) for real creds
 ├── lib/csafe/              CSAFE framing/opcodes (port of the Pi's protocol.py)
 │   ├── csafe.h
 │   └── csafe.cpp
-├── src/main.cpp            firmware: Wi-Fi, OTA, HTTP + WebSocket API
+├── src/main.cpp            firmware: Wi-Fi, OTA, HTTP + WebSocket API, ESP-NOW
+├── examples/
+│   └── espnow_receiver/    second-ESP32 receiver → USB-serial JSON bridge
 └── docs/
     ├── wiring.md           ESP32 ↔ MAX3232 ↔ CSAFE + safety
-    └── api.md              full endpoint reference
+    ├── api.md              full endpoint reference
+    └── transports.md       Wi-Fi vs ESP-NOW vs BLE FTMS notes
 ```
 
 ## Status

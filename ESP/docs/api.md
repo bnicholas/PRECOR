@@ -20,10 +20,14 @@ Device + link status.
   "device": "precor-csafe-esp",
   "uptime_ms": 123456,
   "free_heap": 210000,
-  "wifi": { "ssid": "...", "ip": "192.168.1.50", "rssi": -57 },
-  "csafe": { "baud": 9600, "rx_pin": 16, "tx_pin": 17 }
+  "wifi": { "ssid": "...", "ip": "192.168.1.50", "rssi": -57, "channel": 6,
+            "mac": "AA:BB:CC:DD:EE:FF" },
+  "csafe": { "baud": 9600, "rx_pin": 16, "tx_pin": 17 },
+  "espnow": { "enabled": false, "ready": true, "interval_ms": 250, "seq": 0 }
 }
 ```
+
+`wifi.channel` is the channel an ESP-NOW receiver must match (see below).
 
 ## GET `/health`
 
@@ -108,6 +112,35 @@ actually 9600.
 ```json
 { "baud": 9600 }
 ```
+
+## POST `/espnow`
+
+Enable/disable the ESP-NOW telemetry broadcast and set its cadence. When
+enabled the probe polls the machine every `interval_ms` and broadcasts a
+24-byte `TelemetryPacket` (see `../include/telemetry_packet.h`) to all ESP-NOW
+peers on the current Wi-Fi channel. Off by default.
+
+Request (both fields optional):
+
+```json
+{ "enabled": true, "interval_ms": 250 }
+```
+
+Response:
+
+```json
+{
+  "enabled": true,
+  "ready": true,
+  "interval_ms": 250,
+  "channel": 6,
+  "mac": "AA:BB:CC:DD:EE:FF",
+  "payload_bytes": 24
+}
+```
+
+`interval_ms` minimum is 20. Receiver setup and the channel-matching gotcha are
+covered in `../examples/espnow_receiver/README.md` and `transports.md`.
 
 ---
 
