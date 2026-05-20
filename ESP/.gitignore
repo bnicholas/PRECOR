@@ -1,0 +1,7 @@
+.pio/
+.pioenvs/
+.piolibdeps/
+# Real Wi-Fi / OTA credentials live here; never commit them.
+include/secrets.h
+*.bin
+*.elf
